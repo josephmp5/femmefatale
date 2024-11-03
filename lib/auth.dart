@@ -49,8 +49,40 @@ class Auth {
   final String baseUrl =
       "https://api.openai.com/v1/chat/completions"; // OpenAI API endpoint
 
-  Future<String> getAgentResponse(String userMessage) async {
+  Future<String> getAgentResponse(
+      String userMessage, String userId, BuildContext context) async {
     try {
+      // Step 1: Check if user has tokens
+      var docRef = _db.collection('users').doc(userId);
+      var doc = await docRef.get();
+
+      if (doc.exists) {
+        int tokens = doc.data()?['tokens'] ?? 0;
+        if (tokens <= 0) {
+          // Step 2: Show snackbar if no tokens are available
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No tokens left. Please buy more tokens.'),
+            ),
+          );
+          return 'No tokens left.';
+        }
+
+        // Step 3: Deduct one token
+        await docRef.update({
+          'tokens': FieldValue.increment(-1),
+        });
+      } else {
+        // If user document does not exist
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not found. Please try again.'),
+          ),
+        );
+        return 'User not found.';
+      }
+
+      // Step 4: Make API request to OpenAI
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {

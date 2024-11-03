@@ -1,4 +1,5 @@
 import 'package:femmefatale/auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class Message {
@@ -20,10 +21,12 @@ class ChatNotifier extends StateNotifier<List<Message>> {
     ];
   }
 
-  Future<void> addAgentResponse(String userMessage) async {
+  Future<void> addAgentResponse(
+      String userMessage, String userId, BuildContext context) async {
     addUserMessage(userMessage);
 
-    final agentResponse = await _agentService.getAgentResponse(userMessage);
+    final agentResponse =
+        await _agentService.getAgentResponse(userMessage, userId, context);
     state = [
       ...state,
       Message(agentResponse, false),

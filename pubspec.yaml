@@ -47,6 +47,7 @@ dependencies:
   in_app_review: ^2.0.9
   page_transition: ^2.1.0
   flutter_riverpod: ^2.6.1
+  jumping_dot: ^0.0.7
   
 
 dev_dependencies:

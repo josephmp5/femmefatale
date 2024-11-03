@@ -1,4 +1,6 @@
+import 'package:femmefatale/auth.dart';
 import 'package:femmefatale/provider/chat_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +14,7 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   final TextEditingController _controller = TextEditingController();
   bool hasMessageBeenSent = false;
+  bool isLoading = false;
 
   // List of predefined questions
   final List<String> questions = [
@@ -25,7 +28,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final chatMessages = ref.watch(chatProvider);
-
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String? userId = user?.uid;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -52,31 +56,52 @@ class _HomePageState extends ConsumerState<HomePage> {
             children: [
               Expanded(
                 child: ListView.builder(
-                  itemCount: chatMessages.length,
+                  itemCount: chatMessages.length + (isLoading ? 1 : 0),
                   itemBuilder: (context, index) {
-                    final message = chatMessages[index];
-                    return Align(
-                      alignment: message.isUser
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 4.0, horizontal: 8.0),
-                        padding: const EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: message.isUser
-                              ? Colors.blue
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Text(
-                          message.text,
-                          style: TextStyle(
-                            color: message.isUser ? Colors.white : Colors.black,
+                    if (index < chatMessages.length) {
+                      final message = chatMessages[index];
+                      return Align(
+                        alignment: message.isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 4.0, horizontal: 8.0),
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: message.isUser
+                                ? Colors.blue
+                                : Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: Text(
+                            message.text,
+                            style: TextStyle(
+                              color:
+                                  message.isUser ? Colors.white : Colors.black,
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      // Display loading indicator where the response will be
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 4.0, horizontal: 8.0),
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.purple),
+                          ),
+                        ),
+                      );
+                    }
                   },
                 ),
               ),
@@ -138,18 +163,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                     IconButton(
                       color: Colors.white,
                       icon: const Icon(Icons.send),
-                      onPressed: () {
+                      onPressed: () async {
                         final message = _controller.text.trim();
                         if (message.isNotEmpty) {
                           // Remove questions as soon as user sends a message
                           setState(() {
                             hasMessageBeenSent = true;
+                            isLoading =
+                                true; // Start loading when message is sent
                           });
 
                           // Using ref to read and call addAgentResponse method
-                          ref
+                          await ref
                               .read(chatProvider.notifier)
-                              .addAgentResponse(message);
+                              .addAgentResponse(message, userId!, context);
+
+                          // Stop loading after response is received
+                          setState(() {
+                            isLoading = false;
+                          });
 
                           _controller.clear();
                         }
