@@ -49,6 +49,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   jumping_dot: ^0.0.7
   
+  
 
 dev_dependencies:
   flutter_test:
