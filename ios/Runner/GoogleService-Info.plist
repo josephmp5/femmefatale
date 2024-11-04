@@ -9,11 +9,11 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.josephmp5.femmefatale</string>
+	<string>com.josephmp5.femmelilith</string>
 	<key>PROJECT_ID</key>
 	<string>femmefatale-2f92f</string>
 	<key>STORAGE_BUCKET</key>
-	<string>femmefatale-2f92f.appspot.com</string>
+	<string>femmefatale-2f92f.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:243323103075:ios:f2c24ba3d5b7366c365556</string>
+	<string>1:243323103075:ios:e143f38a83f5b619365556</string>
 </dict>
 </plist>
