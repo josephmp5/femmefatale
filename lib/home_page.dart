@@ -1,8 +1,13 @@
-import 'package:femmefatale/auth.dart';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:femmefatale/provider/chat_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/models/purchases_configuration.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -25,18 +30,106 @@ class _HomePageState extends ConsumerState<HomePage> {
     "How can I start a meaningful conversation on a first date?"
   ];
 
+  Future<void> _configureSDK() async {
+    await Purchases.setLogLevel(LogLevel.debug);
+
+    PurchasesConfiguration? configuration;
+
+    if (Platform.isAndroid) {
+      // Add your Android configuration here
+    } else if (Platform.isIOS) {
+      configuration =
+          PurchasesConfiguration("appl_weqNoJwAvWxZVdtvLpyyVFayMux");
+    }
+
+    if (configuration != null) {
+      await Purchases.configure(configuration);
+
+      final paywallResult =
+          await RevenueCatUI.presentPaywallIfNeeded("premium");
+      debugPrint('Paywall result: $paywallResult');
+
+      if (paywallResult == PaywallResult.purchased) {
+        await _updateTokenCount();
+      }
+    }
+  }
+
+  Future<void> _updateTokenCount() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      int currentTokenCount = userDoc['tokens'] ?? 0;
+      int tokenIncrement;
+
+      // Retrieve customer info to check what was purchased
+      final customerInfo = await Purchases.getCustomerInfo();
+
+      // Assuming you want to check all active entitlements (like in `HomeScreen`)
+      if (customerInfo.entitlements.active.isNotEmpty) {
+        for (var entitlement in customerInfo.entitlements.active.values) {
+          final productId = entitlement.productIdentifier;
+
+          // Use the same logic as in HomeScreen for assigning token amounts
+          if (productId == "femmelilith_30days_999") {
+            tokenIncrement = 50;
+          } else if (productId == "femmelilith_90days_1999") {
+            tokenIncrement = 75;
+          } else if (productId == "femmelilith_annual_7999") {
+            tokenIncrement = 600;
+          } else {
+            tokenIncrement = 0; // default or handle unknown product identifier
+          }
+
+          // Update token count
+          int newTokenCount = currentTokenCount + tokenIncrement;
+
+          // Update Firestore with the new token count
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({
+            'tokens': newTokenCount,
+          });
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatMessages = ref.watch(chatProvider);
     final User? user = FirebaseAuth.instance.currentUser;
     final String? userId = user?.uid;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text(
-          "Chat with Agent",
-          style: TextStyle(color: Colors.white),
+        title: GestureDetector(
+          onTap: _configureSDK,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Icon(
+                Icons.star,
+                color: Colors.yellow,
+                size: 24.0,
+              ),
+              SizedBox(width: 8.0),
+              Text(
+                "Try Premium",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       body: Container(
@@ -150,12 +243,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
+                        style: const TextStyle(
+                            color:
+                                Colors.white), // User text color in TextField
                         decoration: InputDecoration(
-                          focusColor: Colors.white,
                           hintText: "Enter your message",
                           hintStyle: const TextStyle(color: Colors.white),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(40.0),
+                            borderSide: const BorderSide(
+                                color: Colors.white, width: 2.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(40),
+                            borderSide: const BorderSide(color: Colors.white),
                           ),
                         ),
                       ),
@@ -168,7 +269,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         if (message.isNotEmpty) {
                           // Remove questions as soon as user sends a message
                           setState(() {
-                            hasMessageBeenSent = true;
                             isLoading =
                                 true; // Start loading when message is sent
                           });
@@ -181,6 +281,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           // Stop loading after response is received
                           setState(() {
                             isLoading = false;
+                            hasMessageBeenSent = true;
                           });
 
                           _controller.clear();
