@@ -75,11 +75,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
           // Use the same logic as in HomeScreen for assigning token amounts
           if (productId == "femmelilith_30days_999") {
-            tokenIncrement = 50;
-          } else if (productId == "femmelilith_90days_1999") {
             tokenIncrement = 75;
+          } else if (productId == "femmelilith_90days_1999") {
+            tokenIncrement = 250;
           } else if (productId == "femmelilith_annual_7999") {
-            tokenIncrement = 600;
+            tokenIncrement = 900;
           } else {
             tokenIncrement = 0; // default or handle unknown product identifier
           }

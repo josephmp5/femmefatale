@@ -29,7 +29,7 @@ class Auth {
       if (user != null) {
         await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
           'uid': user.uid,
-          'tokens': 25,
+          'tokens': 2,
         });
 
         await MyApp.navigatorKey.currentState?.pushReplacement(PageTransition(
